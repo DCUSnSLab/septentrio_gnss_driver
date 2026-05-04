@@ -39,7 +39,7 @@ def generate_launch_description():
         arguments = "0 0 0 0 0 0 imu aux1".split(' ')
     )
 
-    default_file_name = 'rover.yaml'
+    default_file_name = 'mosaic_h.yaml'
     name_arg_file_name = "file_name"
     arg_file_name = DeclareLaunchArgument(name_arg_file_name,
                                           default_value=TextSubstitution(text=str(default_file_name)))
@@ -65,4 +65,20 @@ def generate_launch_description():
         output='screen'
     )
 
-    return launch.LaunchDescription([arg_file_name, arg_file_path, container, tf_imu, tf_gnss, tf_vsm, tf_aux1])
+    rtcm_bridge = Node(
+        package='septentrio_gnss_driver',
+        executable='rtcm_tcp_bridge.py',
+        name='rtcm_tcp_bridge',
+        output='screen',
+    )
+
+    return launch.LaunchDescription([
+        arg_file_name,
+        arg_file_path,
+        container,
+        rtcm_bridge,
+        tf_imu,
+        tf_gnss,
+        tf_vsm,
+        tf_aux1,
+    ])

@@ -298,6 +298,11 @@ elseif(ament_cmake_FOUND)
     DESTINATION lib/${PROJECT_NAME}
   )
 
+  install(PROGRAMS
+    scripts/rtcm_tcp_bridge.py
+    DESTINATION lib/${PROJECT_NAME}
+  )
+
   install(DIRECTORY include/
     DESTINATION include/
   )
@@ -314,4 +319,3 @@ elseif(ament_cmake_FOUND)
 else()
   message(FATAL_ERROR "Build failed because neither catkin nor ament found.")
 endif()
-

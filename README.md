@@ -608,6 +608,53 @@ The following is a list of ROSaic parameters found in the `config/rover.yaml` fi
         + default: "auto"
       + `keep_open`: determines wether this connection shall be kept open. If set to `true` the Rx will still be able to receive RTK corrections to improve precision after driver is shut down.
         + default: true
+
+    + Troubleshooting NTRIP over USB/RNDIS on Ubuntu:
+      + Symptoms: the receiver web interface shows `Error retrieving source table: Resolving host failed` or `Error retrieving source table: Connecting to caster failed`, and ROS topics such as `/gpsfix` report a normal fix instead of RTK.
+      + Cause: the PC can reach the NTRIP caster, but the receiver cannot reach the internet through the USB/RNDIS link. Opening `http://192.168.3.1` only proves that the PC can reach the receiver; it does not prove that the receiver can reach the caster.
+      + First, make sure the receiver's NTRIP `Caster` field contains the real caster hostname or IP address, for example `RTS2.ngii.go.kr` or `210.117.198.83`. Do not put the PC's USB/RNDIS address, such as `192.168.3.214`, in the `Caster` field.
+      + Enable outgoing internet access over USB on the receiver. In the web interface this is usually under `Communication > USB` or `Communication > Network Settings > General` as `Outgoing Internet Access Over USB`. The receiver command for the same setting is `suia, on`.
+      + Share the PC internet connection to the receiver. On Ubuntu with NetworkManager, identify the USB/RNDIS connection name with:
+
+        ```
+        nmcli device status
+        ip -br addr
+        ```
+
+        Then enable sharing on the receiver-side connection. Replace `Wired connection 1` with the actual connection name if different:
+
+        ```
+        sudo nmcli connection mod "Wired connection 1" ipv4.method shared ipv6.method ignore
+        sudo nmcli connection down "Wired connection 1"
+        sudo nmcli connection up "Wired connection 1"
+        ```
+
+      + After enabling shared mode, unplug/replug the receiver USB cable or reboot the receiver. The receiver may receive a new DHCP address, often in `10.42.0.0/24` instead of the default `192.168.3.1`. Find it with:
+
+        ```
+        ip -br addr show <usb-rndis-interface>
+        ip neigh show dev <usb-rndis-interface>
+        ```
+
+        Then open the receiver web interface at the reachable neighbor address, for example `http://10.42.0.127`.
+      + If the receiver address changed, update the ROSaic `device` parameter as well, for example `device: tcp://10.42.0.127:28784`. The default `tcp://192.168.3.1:28784` will no longer work after the USB/RNDIS network has moved to another subnet.
+      + If NetworkManager sharing is not used, equivalent manual routing requires IP forwarding and NAT on the PC:
+
+        ```
+        sudo sysctl -w net.ipv4.ip_forward=1
+        sudo iptables -t nat -A POSTROUTING -o <internet-interface> -j MASQUERADE
+        sudo iptables -A FORWARD -i <usb-rndis-interface> -o <internet-interface> -j ACCEPT
+        sudo iptables -A FORWARD -i <internet-interface> -o <usb-rndis-interface> -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+        ```
+
+      + Once NTRIP is connected, RTK can be checked in ROS 2 with:
+
+        ```
+        ros2 topic echo /gpsfix --once
+        ros2 topic echo /pvtgeodetic --once
+        ```
+
+        In `/gpsfix`, `status.status` should be `19` (`STATUS_RTK_FIX`) or `20` (`STATUS_RTK_FLOAT`). In `/pvtgeodetic`, `mode & 15` should be `4` for RTK fixed or `5` for RTK float.
   </details>
   
   <details>
