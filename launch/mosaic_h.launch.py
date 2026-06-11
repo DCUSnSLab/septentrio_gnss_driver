@@ -21,10 +21,16 @@ def generate_launch_description():
         arguments = "0 0 0 0 0 0 base_link imu".split(' ')
     )
 
+    # Dual-antenna heading setup (ROS ENU axes: +x forward, +y left).
+    # Only the DIRECTION of the main->aux baseline matters here; the driver
+    # derives heading/pitch offset from it (rosaic_node.cpp:354-365). The
+    # baseline LENGTH is measured by the receiver via GNSS, so the magnitudes
+    # below are placeholders. Main antenna mounted at the front, Aux at the
+    # rear -> baseline points backward -> heading_offset = 180 deg.
     tf_gnss = Node(
         package="tf2_ros",
         executable="static_transform_publisher",
-        arguments = "0 0 0 0 0 0 imu gnss".split(' ')
+        arguments = "0.5 0 0 0 0 0 imu gnss_antenna".split(' ')
     )
 
     tf_vsm = Node(
@@ -36,7 +42,7 @@ def generate_launch_description():
     tf_aux1 = Node(
         package="tf2_ros",
         executable="static_transform_publisher",
-        arguments = "0 0 0 0 0 0 imu aux1".split(' ')
+        arguments = "-0.75 0 0 0 0 0 imu gnss_aux".split(' ')
     )
 
     default_file_name = 'mosaic_h.yaml'

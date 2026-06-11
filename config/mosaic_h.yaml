@@ -30,9 +30,9 @@ osnma:
   ntp_server: ""
   keep_open: true
 
-frame_id: gnss
+frame_id: gnss_antenna
 
-aux1_frame_id: aux1
+aux1_frame_id: gnss_aux
 
 get_spatial_config_from_tf: true
 
